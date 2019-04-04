@@ -69,8 +69,24 @@ def build_parser():
                         help='start SnakeViz in server-only mode--'
                              'no attempt will be made to open a browser')
 
+    parser.add_argument('-t', '--template', action="store_true", default=False,
+                        help='Run SnakeViz in template-execution-only mode--'
+                             'The profile will be rendered to an html file'
+                             'but no server will be started')
     return parser
 
+def run_template(filename):
+    import os.path
+    from tornado.template import Loader
+    from .stats import table_rows, json_stats
+
+    s = Stats(filename)
+    loader = Loader(os.path.join(os.path.dirname(__file__), 'templates'))
+    template = loader.load('viz.html')
+    output = template.generate(profile_name=filename,
+                table_rows=table_rows(s), callees=json_stats(s))
+    with open(filename + '.html', 'w') as f:
+        f.write(output)
 
 def main(argv=None):
     parser = build_parser()
@@ -98,6 +114,10 @@ def main(argv=None):
                          '\tpython -m cProfile -o my_program.prof my_program.py\n\n'
                          'Note that snakeviz must be run under the same '
                          'version of Python as was used to create the profile.\n')
+
+    if args.template:
+        run_template(filename)
+        return
 
     filename = quote(filename, safe='')
 
